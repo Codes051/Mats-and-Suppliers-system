@@ -1,55 +1,77 @@
 package com.bc.cleaninv.filter;
 
-import jakarta.servlet.*;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import java.io.IOException;
+import java.util.Set;
 
-/**
- * Owner: Member 2 (Authentication & Security Developer)
- *
- * Blocks access to every URL EXCEPT the ones explicitly allowed
- * (login, register, static assets). Any other request without a
- * logged-in user is redirected to /login.
- */
 @WebFilter("/*")
 public class AuthFilter implements Filter {
 
-    private static final String[] PUBLIC_PATHS = {
-            "/login", "/register", "/css/", "/index.jsp", "/"
-    };
+    private static final Set<String> PUBLIC_PATHS = Set.of(
+            "/",
+            "/login",
+            "/register"
+    );
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+    public void init(FilterConfig filterConfig) {
+        // No initialization required.
+    }
 
-        HttpServletRequest req = (HttpServletRequest) request;
-        HttpServletResponse resp = (HttpServletResponse) response;
+    @Override
+    public void doFilter(
+            ServletRequest request,
+            ServletResponse response,
+            FilterChain chain
+    ) throws IOException, ServletException {
 
-        String path = req.getRequestURI().substring(req.getContextPath().length());
+        HttpServletRequest httpRequest =
+                (HttpServletRequest) request;
 
-        boolean isPublic = false;
-        for (String publicPath : PUBLIC_PATHS) {
-            if (path.equals(publicPath) || path.startsWith(publicPath)) {
-                isPublic = true;
-                break;
-            }
-        }
+        HttpServletResponse httpResponse =
+                (HttpServletResponse) response;
 
-        if (isPublic) {
+        String contextPath = httpRequest.getContextPath();
+        String requestUri = httpRequest.getRequestURI();
+
+        String path = requestUri.substring(contextPath.length());
+
+        boolean publicPage = PUBLIC_PATHS.contains(path);
+
+        boolean publicResource =
+                path.startsWith("/css/")
+                        || path.startsWith("/js/")
+                        || path.startsWith("/images/")
+                        || path.startsWith("/favicon");
+
+        HttpSession session = httpRequest.getSession(false);
+
+        boolean loggedIn =
+                session != null
+                        && session.getAttribute("user") != null;
+
+        if (publicPage || publicResource || loggedIn) {
             chain.doFilter(request, response);
             return;
         }
 
-        HttpSession session = req.getSession(false);
-        if (session == null || session.getAttribute("user") == null) {
-            resp.sendRedirect(req.getContextPath() + "/login");
-            return;
-        }
+        httpResponse.sendRedirect(
+                contextPath + "/login"
+        );
+    }
 
-        chain.doFilter(request, response);
+    @Override
+    public void destroy() {
+        // No cleanup required.
     }
 }

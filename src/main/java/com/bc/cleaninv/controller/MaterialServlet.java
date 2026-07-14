@@ -2,42 +2,38 @@ package com.bc.cleaninv.controller;
 
 import com.bc.cleaninv.model.Material;
 import com.bc.cleaninv.service.MaterialService;
+import com.bc.cleaninv.service.SupplierService;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
-/**
- * Owner: Member 3 (Materials & Suppliers Developer)
- *
- * URL pattern convention used across the app:
- *   GET  /materials              -> list (+ optional ?q=keyword search)
- *   GET  /materials?action=new   -> show add form
- *   GET  /materials?action=edit&id=5 -> show edit form
- *   POST /materials               -> create or update (action=create|update)
- *   GET  /materials/delete?id=5  -> delete (Supervisor only, see RoleFilter)
- *
- * Copy this pattern for SupplierServlet, CleanerServlet, IssuanceServlet.
- */
 @WebServlet({"/materials", "/materials/delete"})
 public class MaterialServlet extends HttpServlet {
 
     private final MaterialService materialService = new MaterialService();
+    private final SupplierService supplierService = new SupplierService();
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+    protected void doGet(
+            HttpServletRequest req,
+            HttpServletResponse resp
+    ) throws ServletException, IOException {
 
         String path = req.getServletPath();
 
         try {
             if (path.endsWith("/delete")) {
-                int id = Integer.parseInt(req.getParameter("id"));
-                materialService.delete(id);
+                int materialId = Integer.parseInt(req.getParameter("id"));
+
+                materialService.delete(materialId);
+
                 resp.sendRedirect(req.getContextPath() + "/materials");
                 return;
             }
@@ -45,79 +41,207 @@ public class MaterialServlet extends HttpServlet {
             String action = req.getParameter("action");
 
             if ("new".equals(action)) {
-                req.getRequestDispatcher("/WEB-INF/views/material-form.jsp").forward(req, resp);
+                loadSuppliers(req);
+
+                req.getRequestDispatcher(
+                        "/WEB-INF/views/material-form.jsp"
+                ).forward(req, resp);
+
                 return;
             }
 
             if ("edit".equals(action)) {
-                int id = Integer.parseInt(req.getParameter("id"));
-                Material material = materialService.getById(id);
+                int materialId = Integer.parseInt(req.getParameter("id"));
+
+                Material material = materialService.getById(materialId);
+
+                if (material == null) {
+                    resp.sendRedirect(req.getContextPath() + "/materials");
+                    return;
+                }
+
                 req.setAttribute("material", material);
-                req.getRequestDispatcher("/WEB-INF/views/material-form.jsp").forward(req, resp);
+                loadSuppliers(req);
+
+                req.getRequestDispatcher(
+                        "/WEB-INF/views/material-form.jsp"
+                ).forward(req, resp);
+
                 return;
             }
 
-            // default: list, with optional search
             String keyword = req.getParameter("q");
-            List<Material> materials = materialService.search(keyword);
+
+            List<Material> materials =
+                    materialService.search(keyword);
+
             req.setAttribute("materials", materials);
             req.setAttribute("keyword", keyword);
-            req.getRequestDispatcher("/WEB-INF/views/materials.jsp").forward(req, resp);
 
-        } catch (SQLException e) {
-            req.setAttribute("error", "A database error occurred while loading materials.");
-            req.getRequestDispatcher("/WEB-INF/views/materials.jsp").forward(req, resp);
+            req.getRequestDispatcher(
+                    "/WEB-INF/views/materials.jsp"
+            ).forward(req, resp);
+
         } catch (NumberFormatException e) {
             resp.sendRedirect(req.getContextPath() + "/materials");
+
+        } catch (IllegalArgumentException e) {
+            req.setAttribute("error", e.getMessage());
+            loadMaterialList(req, resp);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+            req.setAttribute(
+                    "error",
+                    "A database error occurred while loading materials."
+            );
+
+            loadMaterialList(req, resp);
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
+    protected void doPost(
+            HttpServletRequest req,
+            HttpServletResponse resp
+    ) throws ServletException, IOException {
 
-        Material m = new Material();
-        m.setName(req.getParameter("name"));
-        m.setDescription(req.getParameter("description"));
-        m.setUnit(req.getParameter("unit"));
+        Material material = new Material();
 
-        try {
-            m.setQuantity(Integer.parseInt(req.getParameter("quantity")));
-            m.setReorderLevel(Integer.parseInt(req.getParameter("reorderLevel")));
-        } catch (NumberFormatException e) {
-            req.setAttribute("error", "Quantity and reorder level must be whole numbers.");
-            req.setAttribute("material", m);
-            req.getRequestDispatcher("/WEB-INF/views/material-form.jsp").forward(req, resp);
-            return;
-        }
-
-        String supplierIdParam = req.getParameter("supplierId");
-        if (supplierIdParam != null && !supplierIdParam.isBlank()) {
-            m.setSupplierId(Integer.parseInt(supplierIdParam));
-        }
-
-        String validationError = materialService.validate(m);
-        if (validationError != null) {
-            req.setAttribute("error", validationError);
-            req.setAttribute("material", m);
-            req.getRequestDispatcher("/WEB-INF/views/material-form.jsp").forward(req, resp);
-            return;
-        }
+        material.setName(req.getParameter("name"));
+        material.setDescription(req.getParameter("description"));
+        material.setUnit(req.getParameter("unit"));
 
         try {
-            String idParam = req.getParameter("materialId");
-            if (idParam != null && !idParam.isBlank()) {
-                m.setMaterialId(Integer.parseInt(idParam));
-                materialService.update(m);
-            } else {
-                materialService.create(m);
+            material.setQuantity(
+                    Integer.parseInt(req.getParameter("quantity"))
+            );
+
+            material.setReorderLevel(
+                    Integer.parseInt(req.getParameter("reorderLevel"))
+            );
+
+            String supplierIdParameter =
+                    req.getParameter("supplierId");
+
+            if (supplierIdParameter != null
+                    && !supplierIdParameter.isBlank()) {
+
+                material.setSupplierId(
+                        Integer.parseInt(supplierIdParameter)
+                );
             }
+
+        } catch (NumberFormatException e) {
+            showFormError(
+                    req,
+                    resp,
+                    material,
+                    "Quantity, reorder level and supplier must contain valid numbers."
+            );
+
+            return;
+        }
+
+        String validationError = materialService.validate(material);
+
+        if (validationError != null) {
+            showFormError(
+                    req,
+                    resp,
+                    material,
+                    validationError
+            );
+
+            return;
+        }
+
+        try {
+            String materialIdParameter =
+                    req.getParameter("materialId");
+
+            if (materialIdParameter != null
+                    && !materialIdParameter.isBlank()) {
+
+                material.setMaterialId(
+                        Integer.parseInt(materialIdParameter)
+                );
+
+                materialService.update(material);
+
+            } else {
+                materialService.create(material);
+            }
+
             resp.sendRedirect(req.getContextPath() + "/materials");
 
+        } catch (NumberFormatException e) {
+            showFormError(
+                    req,
+                    resp,
+                    material,
+                    "Invalid material ID."
+            );
+
         } catch (SQLException e) {
-            req.setAttribute("error", "A database error occurred while saving the material.");
-            req.setAttribute("material", m);
-            req.getRequestDispatcher("/WEB-INF/views/material-form.jsp").forward(req, resp);
+            e.printStackTrace();
+
+            showFormError(
+                    req,
+                    resp,
+                    material,
+                    "A database error occurred while saving the material."
+            );
         }
+    }
+
+    private void loadSuppliers(HttpServletRequest req)
+            throws SQLException {
+
+        req.setAttribute(
+                "suppliers",
+                supplierService.getAllSuppliers()
+        );
+    }
+
+    private void showFormError(
+            HttpServletRequest req,
+            HttpServletResponse resp,
+            Material material,
+            String errorMessage
+    ) throws ServletException, IOException {
+
+        req.setAttribute("error", errorMessage);
+        req.setAttribute("material", material);
+
+        try {
+            loadSuppliers(req);
+        } catch (SQLException e) {
+            req.setAttribute("suppliers", List.of());
+        }
+
+        req.getRequestDispatcher(
+                "/WEB-INF/views/material-form.jsp"
+        ).forward(req, resp);
+    }
+
+    private void loadMaterialList(
+            HttpServletRequest req,
+            HttpServletResponse resp
+    ) throws ServletException, IOException {
+
+        try {
+            req.setAttribute(
+                    "materials",
+                    materialService.search(null)
+            );
+        } catch (SQLException e) {
+            req.setAttribute("materials", List.of());
+        }
+
+        req.getRequestDispatcher(
+                "/WEB-INF/views/materials.jsp"
+        ).forward(req, resp);
     }
 }

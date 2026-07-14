@@ -1,72 +1,91 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Materials - Cleaning Inventory System</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/style.css">
+    <title>Suppliers - Cleaning Inventory System</title>
+    <link rel="stylesheet"
+          href="${pageContext.request.contextPath}/css/style.css">
 </head>
 <body>
+
 <%@ include file="fragments/header.jspf" %>
 
 <main class="app-content">
-    <h1>Materials</h1>
+    <h1>Suppliers</h1>
 
     <c:if test="${not empty error}">
-        <div class="alert error">${error}</div>
+        <div class="alert error">
+            <c:out value="${error}" />
+        </div>
     </c:if>
 
-    <form class="search-bar" method="get" action="${pageContext.request.contextPath}/materials">
-        <input type="text" name="q" placeholder="Search materials by name..." value="${keyword}">
+    <form class="search-bar"
+          method="get"
+          action="${pageContext.request.contextPath}/suppliers">
+
+        <input type="text"
+               name="q"
+               placeholder="Search suppliers..."
+               value="${keyword}">
+
         <button type="submit" class="btn">Search</button>
-        <a href="${pageContext.request.contextPath}/materials?action=new" class="btn">+ Add Material</a>
+
+        <a href="${pageContext.request.contextPath}/suppliers?action=new"
+           class="btn">
+            + Add Supplier
+        </a>
     </form>
 
     <table class="data-table">
         <thead>
         <tr>
             <th>Name</th>
-            <th>Supplier</th>
-            <th>Unit</th>
-            <th>Quantity</th>
-            <th>Reorder Level</th>
-            <th>Status</th>
+            <th>Contact Person</th>
+            <th>Phone</th>
+            <th>Email</th>
+            <th>Address</th>
             <th>Actions</th>
         </tr>
         </thead>
+
         <tbody>
-        <c:forEach var="m" items="${materials}">
+        <c:forEach var="supplier" items="${suppliers}">
             <tr>
-                <td>${m.name}</td>
-                <td>${m.supplierName != null ? m.supplierName : '—'}</td>
-                <td>${m.unit}</td>
-                <td>${m.quantity}</td>
-                <td>${m.reorderLevel}</td>
+                <td><c:out value="${supplier.name}" /></td>
+                <td><c:out value="${supplier.contactPerson}" /></td>
+                <td><c:out value="${supplier.phone}" /></td>
+                <td><c:out value="${supplier.email}" /></td>
+                <td><c:out value="${supplier.address}" /></td>
                 <td>
-                    <c:choose>
-                        <c:when test="${m.lowStock}">
-                            <span class="badge low">Low Stock</span>
-                        </c:when>
-                        <c:otherwise>
-                            <span class="badge ok">OK</span>
-                        </c:otherwise>
-                    </c:choose>
-                </td>
-                <td>
-                    <a href="${pageContext.request.contextPath}/materials?action=edit&id=${m.materialId}">Edit</a>
+                    <a href="${pageContext.request.contextPath}/suppliers?action=edit&id=${supplier.supplierId}">
+                        Edit
+                    </a>
+
                     &nbsp;|&nbsp;
-                    <a href="${pageContext.request.contextPath}/materials/delete?id=${m.materialId}"
-                       onclick="return confirm('Delete this material?');"
-                       style="color:#a4262c;">Delete</a>
+
+                    <a href="${pageContext.request.contextPath}/suppliers/delete?id=${supplier.supplierId}"
+                       onclick="return confirm('Delete this supplier?');"
+                       style="color:#a4262c;">
+                        Delete
+                    </a>
                 </td>
             </tr>
         </c:forEach>
-        <c:if test="${empty materials}">
-            <tr><td colspan="7" style="text-align:center;color:#888;">No materials found.</td></tr>
+
+        <c:if test="${empty suppliers}">
+            <tr>
+                <td colspan="6"
+                    style="text-align:center;color:#888;">
+                    No suppliers found.
+                </td>
+            </tr>
         </c:if>
         </tbody>
     </table>
 </main>
+
 </body>
 </html>

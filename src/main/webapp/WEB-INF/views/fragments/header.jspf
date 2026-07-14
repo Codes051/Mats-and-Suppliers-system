@@ -1,22 +1,17 @@
-<%@ page contentType="text/html;charset=UTF-8" %>
-<%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<!-- Owner: Member 5 (Reports & UI/UX Developer)
-     Include at the top of every protected page with:
-     <%@ include file="fragments/header.jspf" %> -->
+﻿<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+
 <header class="app-header">
-    <div class="brand">University Cleaning Inventory &amp; Issuance System</div>
-    <c:if test="${not empty sessionScope.user}">
-        <div>${sessionScope.user.username} (${sessionScope.role})
-            &nbsp;|&nbsp;
-            <a href="${pageContext.request.contextPath}/logout" style="color:#fff;">Logout</a>
-        </div>
-    </c:if>
+    <div class="app-brand">
+        Cleaning Inventory System
+    </div>
+
+    <nav class="app-nav">
+        <a href="${pageContext.request.contextPath}/dashboard">Dashboard</a>
+        <a href="${pageContext.request.contextPath}/materials">Materials</a>
+        <a href="${pageContext.request.contextPath}/suppliers">Suppliers</a>
+        <a href="${pageContext.request.contextPath}/cleaners">Cleaners</a>
+        <a href="${pageContext.request.contextPath}/issuances">Stock Issuance</a>
+        <a href="${pageContext.request.contextPath}/reports">Reports</a>
+        <a href="${pageContext.request.contextPath}/logout">Logout</a>
+    </nav>
 </header>
-<nav class="app-nav">
-    <a href="${pageContext.request.contextPath}/dashboard">Dashboard</a>
-    <a href="${pageContext.request.contextPath}/materials">Materials</a>
-    <a href="${pageContext.request.contextPath}/suppliers">Suppliers</a>
-    <a href="${pageContext.request.contextPath}/cleaners">Cleaners</a>
-    <a href="${pageContext.request.contextPath}/issuances">Stock Issuance</a>
-    <a href="${pageContext.request.contextPath}/reports">Reports</a>
-</nav>

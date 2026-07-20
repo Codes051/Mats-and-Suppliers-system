@@ -9,14 +9,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 /**
- * Owner: Member 1 (Team Lead / Integration & Database Architect)
- *
- * Pulls summary numbers from the Materials module.
- *
- * This version includes temporary detailed error handling so that
- * deployment or database problems can be diagnosed more easily.
+ * Loads summary information for the dashboard.
  */
 @WebServlet("/dashboard")
 public class DashboardServlet extends HttpServlet {
@@ -36,31 +32,17 @@ public class DashboardServlet extends HttpServlet {
             req.setAttribute("totalMaterials", totalMaterials);
             req.setAttribute("lowStockCount", lowStockCount);
 
-            // These will be added by the relevant team members later.
-            // req.setAttribute(
-            //         "totalCleaners",
-            //         cleanerDAO.countAll()
-            // );
-            //
-            // req.setAttribute(
-            //         "recentIssuances",
-            //         issuanceDAO.findRecent(5)
-            // );
-
             req.getRequestDispatcher(
                     "/WEB-INF/views/dashboard.jsp"
             ).forward(req, resp);
 
-        } catch (Throwable error) {
-            error.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
 
-            String errorMessage =
-                    "Could not load dashboard statistics: "
-                            + error.getClass().getName()
-                            + " - "
-                            + error.getMessage();
-
-            req.setAttribute("error", errorMessage);
+            req.setAttribute(
+                    "error",
+                    "Could not load dashboard statistics."
+            );
 
             req.getRequestDispatcher(
                     "/WEB-INF/views/dashboard.jsp"

@@ -71,12 +71,20 @@ public class MaterialServlet extends HttpServlet {
             }
 
             String keyword = req.getParameter("q");
+            boolean lowStockOnly =
+                    "true".equals(req.getParameter("lowStockOnly"));
 
-            List<Material> materials =
-                    materialService.search(keyword);
+            List<Material> materials;
+
+            if (lowStockOnly) {
+                materials = materialService.getLowStock();
+            } else {
+                materials = materialService.search(keyword);
+            }
 
             req.setAttribute("materials", materials);
             req.setAttribute("keyword", keyword);
+            req.setAttribute("lowStockOnly", lowStockOnly);
 
             req.getRequestDispatcher(
                     "/WEB-INF/views/materials.jsp"
